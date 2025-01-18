@@ -49,9 +49,8 @@ class Matrix {
 
         int const i     = blockIdx.x * blockDim.x + threadIdx.x;
         int const j     = blockIdx.y * blockDim.y + threadIdx.y;
-        int const row   = this.getRows()
-        int const cols  = this.getRows()
-        
+        int const row   = this.getRows();
+        int const cols  = this.getRows();
         
         T* mat1         = this.getArray();
         T* mat2         = m.getArray();
