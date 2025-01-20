@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "include/gpu_mat_mult_tiled.cuh"
+
 #define TILE_WIDTH 32
 
 #define CUDA_CHECK(err) {if (err != cudaSuccess){printf("%s in %s at line %d \n", cudaGetErrorString(err), __FILE__, __LINE__);exit(EXIT_FAILURE);}}
@@ -50,7 +52,7 @@ __global__ void tiled_mat_mul_kernel(float* A, float* B, float* C, int N1, int N
     // Assigning calculated value
     if ((i < N1) && (j < N3))
       C[i*N3+j] = value;
-}
+};
 
 void tiled_mat_mul_gpu(float* A, float* B, float* C, int N1, int N2, int N3)
 {
@@ -96,4 +98,31 @@ void tiled_mat_mul_gpu(float* A, float* B, float* C, int N1, int N2, int N3)
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);
-}
+};
+
+
+template<typename T>
+void matrixMultiply(const Matrix<T> &A, const Matrix<T> &B, Matrix<T> &C) {
+  // Ensure matrices are compatible for multiplication
+  if (A.cols != B.rows) {
+      std::cerr << "Matrix dimensions do not match for multiplication!" << std::endl;
+      return;
+  }
+
+  // Copy matrices A and B to device memory
+  A.copyToDevice();
+  B.copyToDevice();
+
+  // Set up grid and block sizes for the kernel launch
+  dim3 blockSize(16, 16); // Example block size
+  dim3 gridSize((B.cols + blockSize.x - 1) / blockSize.x, (A.rows + blockSize.y - 1) / blockSize.y);
+
+  // Launch the matrix multiplication kernel
+  matrixMultiplyKernel<<<gridSize, blockSize>>>(A.d_data, B.d_data, C.d_data, A.rows, A.cols, B.cols);
+
+  // Check for kernel launch errors
+  cudaDeviceSynchronize();
+
+  // Copy result matrix C from device to host
+  C.copyToHost();
+};
